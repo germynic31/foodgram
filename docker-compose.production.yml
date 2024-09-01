@@ -1,0 +1,38 @@
+version: '3'
+
+volumes:
+  pg_data_production:
+  static_production:
+  media_production:
+
+services:
+  db:
+    env_file: .env
+    image: postgres:13
+    volumes:
+      - pg_data_production:/var/lib/postgresql/data
+  backend:
+    depends_on:
+      - db
+    image: germynic31/foodgram_backend
+    env_file: .env
+    volumes:
+      - static_production:/backend_static
+      - media_production:/media
+  frontend:
+    env_file: .env
+    image: germynic31/foodgram_frontend
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static_production:/frontend_static
+  gateway:
+    depends_on:
+      - backend
+      - frontend
+    image: germynic31/foodgram_gateway
+    env_file: .env
+    ports:
+      - 9090:80
+    volumes:
+      - static_production:/staticfiles/
+      - media_production:/media

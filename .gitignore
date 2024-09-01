@@ -138,5 +138,6 @@ dmypy.json
 .idea
 .vscode
 
-static/
-media/
+recipes
+collected_static
+static
