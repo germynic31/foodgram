@@ -2,7 +2,7 @@ url - https://foodgram31.ddns.net
 
 admin profile:
   - email - test@mail.com
-  - password - 13579024680qwe.
+  - password - Test77.
 
 
 # Foodgram - сайт с рецептами на любой вкус
