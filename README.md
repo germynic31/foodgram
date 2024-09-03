@@ -78,8 +78,8 @@ sudo systemctl start nginx
 #### Склонировать репозиторий и перейти в директорию проекта:
 
 ```bash
-git clone https://github.com/germynic31/foodgram-project-react.git
-cd foodgram-project-react
+git clone https://github.com/germynic31/foodgram.git
+cd foodgram
 ```
 
 #### Скопировать docker-compose.production.yml и настроить .env
@@ -114,6 +114,12 @@ sudo docker compose -f docker-compose.production.yml up -d
 ```bash
 sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
 sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
+```
+
+#### Заполнить базу данных ингредиентами:
+
+```bash
+sudo docker compose -f docker-compose.production.yml exec backend python import_data_from_csv.py
 ```
 ---
 
