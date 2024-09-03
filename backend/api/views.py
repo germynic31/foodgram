@@ -20,7 +20,8 @@ from .filters import RecipeFilter, IngredientFilter
 from .serializers import (
     TagSerializer, IngredientSerializer, RecipeReadSerializer,
     RecipeWriteSerializer, UserReadSerializer, FollowSerializer,
-    RecipeForUserSerializer, FollowListSerializer, DjoserUserCreateSerializer, UserUpdateAvatar
+    RecipeForUserSerializer, FollowListSerializer, DjoserUserCreateSerializer,
+    UserUpdateAvatar
 )
 
 
@@ -69,14 +70,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def shopping_cart(self, request, pk=None):
         current_user = request.user
         if not Recipe.objects.filter(id=pk).exists():
-            return Response({'errors': 'Рецепт не существует!'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'errors': 'Рецепт не существует!'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         if Cart.objects.filter(user=current_user, recipe=pk).exists():
-            return Response({'errors': 'Рецепт уже добавлен!'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Рецепт уже добавлен!'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         serializer = RecipeForUserSerializer(
             Recipe.objects.get(id=pk), context={'request': request}
         )
-        Cart.objects.create(user=current_user, recipe=Recipe.objects.get(id=pk))
+        Cart.objects.create(
+            user=current_user, recipe=Recipe.objects.get(id=pk)
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @shopping_cart.mapping.delete
@@ -85,12 +94,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
         try:
             recipe = Recipe.objects.get(id=int(pk))
         except Recipe.DoesNotExist:
-            return Response({'errors': 'Рецепт не существует!'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'errors': 'Рецепт не существует!'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         try:
             Cart.objects.get(user=current_user, recipe=recipe).delete()
         except Cart.DoesNotExist:
-            return Response({'errors': 'Вы не добавляли этот ингредиент в корзину'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Вы не добавляли этот ингредиент в корзину'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
@@ -99,9 +114,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         try:
             recipe = Recipe.objects.get(id=int(pk))
         except Recipe.DoesNotExist:
-            return Response({'errors': 'Рецепт не существует!'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'errors': 'Рецепт не существует!'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         if Favorite.objects.filter(user=current_user, recipe=recipe).exists():
-            return Response({'errors': 'Рецепт уже добавлен!'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Рецепт уже добавлен!'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         serializer = RecipeForUserSerializer(
             recipe, context={'request': request}
@@ -115,11 +136,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         try:
             recipe = Recipe.objects.get(id=int(pk))
         except Recipe.DoesNotExist:
-            return Response({'errors': 'Рецепт не существует!'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'errors': 'Рецепт не существует!'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         try:
             Favorite.objects.get(user=current_user, recipe=recipe).delete()
         except Favorite.DoesNotExist:
-            return Response({'errors': 'Вы не добавляли этот ингредиент в избранные'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'errors': 'Вы не добавляли этот ингредиент в избранные'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -157,10 +184,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):
         if Recipe.objects.filter(pk=pk).exists():
-            domain = os.getenv('ALLOWED_HOSTS', '127.0.0.1, localhost').split(', ')[0]
+            domain = os.getenv(
+                'ALLOWED_HOSTS', '127.0.0.1, localhost'
+            ).split(', ')[0]
             link = f'{domain}/recipes/{pk}/'
             return Response({'short-link': link})
-        return Response({'errors': 'Рецепт не существует!'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {'errors': 'Рецепт не существует!'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
 
 class UserViewSet(DjoserViewSet):
@@ -227,7 +259,9 @@ class UserViewSet(DjoserViewSet):
     @action(detail=False, methods=['put'], url_path='me/avatar')
     def avatar(self, request):
         current_user = request.user
-        serializer = UserUpdateAvatar(current_user, data=request.data, context={'request': request})
+        serializer = UserUpdateAvatar(
+            current_user, data=request.data, context={'request': request}
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
