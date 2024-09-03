@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
@@ -155,9 +157,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):
         if Recipe.objects.filter(pk=pk).exists():
-            return Response({'short-link': request.build_absolute_uri()})
+            domain = os.getenv('ALLOWED_HOSTS', '127.0.0.1, localhost').split(', ')[0]
+            link = f'{domain}/recipes/{pk}/'
+            return Response({'short-link': link})
         return Response({'errors': 'Рецепт не существует!'}, status=status.HTTP_404_NOT_FOUND)
-
 
 
 class UserViewSet(DjoserViewSet):
