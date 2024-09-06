@@ -1,8 +1,4 @@
-import base64
-
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AnonymousUser
-from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
@@ -10,20 +6,10 @@ from rest_framework import serializers
 from foods.models import (
     Tag, Recipe, Ingredient, Follow, Favorite, Cart, IngredientRecipe
 )
+from .fields import Base64ImageField
 
 
 User = get_user_model()
-
-
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith('data:image'):
-            format, imgstr = data.split(';base64,')
-            ext = format.split('/')[-1]
-
-            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-
-        return super().to_internal_value(data)
 
 
 class UserReadSerializer(serializers.ModelSerializer):
@@ -39,7 +25,7 @@ class UserReadSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         current_user = self.context['request'].user
-        if not isinstance(current_user, AnonymousUser):
+        if not current_user.is_anonymous:
             return Follow.objects.filter(
                 user=current_user,
                 following=obj
@@ -96,19 +82,19 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         current_user = self.context.get('request').user
-        if isinstance(current_user, AnonymousUser):
+        if current_user.is_anonymous:
             return False
-        if Favorite.objects.filter(user=current_user, recipe=obj).exists():
-            return True
-        return False
+        return Favorite.objects.filter(
+            user=current_user, recipe=obj
+        ).exists()
 
     def get_is_in_shopping_cart(self, obj):
         current_user = self.context.get('request').user
-        if isinstance(current_user, AnonymousUser):
+        if current_user.is_anonymous:
             return False
-        if Cart.objects.filter(user=current_user, recipe=obj).exists():
-            return True
-        return False
+        return Cart.objects.filter(
+            user=current_user, recipe=obj
+        ).exists()
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
@@ -147,50 +133,52 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         unique_ingredients = []
         unique_tags = []
-        for i in ingredients:
+        for ingredient in ingredients:
             try:
-                ingredient = Ingredient.objects.get(id=i.get('ingredient').id)
+                ingredient_object = Ingredient.objects.get(
+                    id=ingredient.get('ingredient').id
+                )
             except Ingredient.DoesNotExist:
                 raise serializers.ValidationError(
                     'Указаны несуществующие ингредиенты!'
                 )
-            if ingredient in unique_ingredients:
+            if ingredient_object in unique_ingredients:
                 raise serializers.ValidationError('Ингредиенты не уникальны!')
-            unique_ingredients.append(ingredient)
-        for i in tags:
-            tag = get_object_or_404(
+            unique_ingredients.append(ingredient_object)
+        for tag in tags:
+            tag_object = get_object_or_404(
                 Tag,
-                id=i.id,
+                id=tag.id,
             )
-            if tag in unique_tags:
+            if tag_object in unique_tags:
                 raise serializers.ValidationError('Теги не уникальны!')
-            unique_tags.append(tag)
+            unique_tags.append(tag_object)
 
         return super().validate(data)
 
     @staticmethod
-    def ingredient_recipe(ingredient, recipe):
-        ings = []
-        for i in ingredient:
+    def create_ingredient_recipe(ingredients, recipe):
+        validated_ingredients = []
+        for i in ingredients:
             obj = IngredientRecipe(
                 recipe=recipe,
                 amount=i['amount'],
                 ingredient_id=i['ingredient'].id
             )
-            ings.append(obj)
-        IngredientRecipe.objects.bulk_create(ings)
+            validated_ingredients.append(obj)
+        IngredientRecipe.objects.bulk_create(validated_ingredients)
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         recipe = super().create(validated_data)
-        self.ingredient_recipe(ingredients, recipe)
+        self.create_ingredient_recipe(ingredients, recipe)
         return recipe
 
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         instance.ingredients.clear()
         instance.tags.clear()
-        self.ingredient_recipe(ingredients, instance)
+        self.create_ingredient_recipe(ingredients, instance)
         return super().update(instance, validated_data)
 
 
@@ -238,7 +226,7 @@ class FollowSerializer(UserReadSerializer):
 
     def get_is_subscribed(self, obj):
         current_user = self.context['request'].user
-        if not isinstance(current_user, AnonymousUser):
+        if not current_user.is_anonymous:
             return Follow.objects.filter(
                 user=current_user,
                 following=obj
@@ -246,25 +234,25 @@ class FollowSerializer(UserReadSerializer):
         return False
 
     def get_recipes_count(self, obj):
-        if isinstance(obj, User) and not obj.is_anonymous:
+        try:
+            return Recipe.objects.filter(
+                author=obj.following
+            ).count()
+        except AttributeError:
             return Recipe.objects.filter(
                 author=obj
             ).count()
-
-        return Recipe.objects.filter(
-            author=obj.following
-        ).count()
 
     def get_recipes(self, obj):
         recipes_limit = int(
             self.context.get('request').GET.get('recipes_limit', 6)
         )
-
-        if isinstance(obj, User) and not obj.is_anonymous:
+        try:
+            recipes = Recipe.objects.filter(
+                author=obj.following
+            )[:recipes_limit]
+        except AttributeError:
             recipes = Recipe.objects.filter(author=obj)[:recipes_limit]
-            return RecipeForUserSerializer(recipes, many=True).data
-
-        recipes = Recipe.objects.filter(author=obj.following)[:recipes_limit]
         return RecipeForUserSerializer(recipes, many=True).data
 
 
@@ -286,7 +274,7 @@ class FollowListSerializer(FollowSerializer):
 
     def get_is_subscribed(self, obj):
         current_user = self.context['request'].user
-        if not isinstance(current_user, AnonymousUser):
+        if not current_user.is_anonymous:
             return Follow.objects.filter(
                 user=current_user,
                 following=obj.following

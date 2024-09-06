@@ -1,4 +1,3 @@
-from django.contrib.auth.models import AnonymousUser
 from django_filters import (
     CharFilter, FilterSet, NumberFilter
 )
@@ -30,17 +29,16 @@ class RecipeFilter(FilterSet):
         tags_params = self.request.GET.getlist('tags')
         if tags_params:
             return queryset.filter(tags__slug__in=tags_params).distinct()
-        else:
-            return queryset
+        return queryset
 
     def filter_is_favorited(self, queryset, name, value):
         current_user = self.request.user
-        if not isinstance(current_user, AnonymousUser) and value:
+        if not current_user.is_anonymous and value:
             return queryset.filter(favorites__user=current_user)
         return queryset
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         current_user = self.request.user
-        if not isinstance(current_user, AnonymousUser) and value:
+        if not current_user.is_anonymous and value:
             return queryset.filter(cart__user=current_user)
         return queryset
