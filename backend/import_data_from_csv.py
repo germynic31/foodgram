@@ -33,7 +33,7 @@ def import_data_from_csv(file_path, model):
 def main():
     from foods.models import Ingredient
 
-    default_path = 'foods/'
+    default_path = '../data/'
     file_names_models = [
         ('ingredients.csv', Ingredient),
     ]

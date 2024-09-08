@@ -66,7 +66,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeWriteSerializer
 
     @staticmethod
-    def validate_and_create_object(request, class_, pk):
+    def create_object_associated_with_recipe(request, class_, pk):
         current_user = request.user
         if not Recipe.objects.filter(id=pk).exists():
             return Response(
@@ -88,7 +88,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @staticmethod
-    def validate_and_delete_object(request, class_, pk):
+    def delete_object_associated_with_recipe(request, class_, pk):
         current_user = request.user
         recipe = get_object_or_404(Recipe, id=int(pk))
         try:
@@ -102,25 +102,25 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def shopping_cart(self, request, pk=None):
-        return self.validate_and_create_object(
+        return self.create_object_associated_with_recipe(
             request, Cart, pk
         )
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
-        return self.validate_and_delete_object(
+        return self.delete_object_associated_with_recipe(
             request, Cart, pk
         )
 
     @action(detail=True, methods=['post'])
     def favorite(self, request, pk=None):
-        return self.validate_and_create_object(
+        return self.create_object_associated_with_recipe(
             request, Favorite, pk
         )
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
-        return self.validate_and_delete_object(
+        return self.delete_object_associated_with_recipe(
             request, Favorite, pk
         )
 
@@ -138,16 +138,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 {'errors': 'У вас пустая корзина!'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        ings = IngredientRecipe.objects.filter(
+        ingredients = IngredientRecipe.objects.filter(
             recipe__cart__user=current_user
         ).values('ingredient__name', 'ingredient__measurement_unit').annotate(
             sum_amount=Sum('amount')
         )
-        for ing in ings:
+        for ingredient in ingredients:
             shopping_cart_list += (
-                f'{ing["ingredient__name"]} - '
-                f'{ing["sum_amount"]}'
-                f'{ing["ingredient__measurement_unit"]}'
+                f'{ingredient["ingredient__name"]} - '
+                f'{ingredient["sum_amount"]}'
+                f'{ingredient["ingredient__measurement_unit"]}'
                 f'\n'
             )
         filename = f'{current_user.username} shopping cart'
@@ -231,9 +231,9 @@ class UserViewSet(DjoserViewSet):
 
     @action(detail=False, methods=['get'])
     def me(self, request):
-        current_user = request.user
-        obj = get_object_or_404(User, email=current_user)
-        serializer = UserReadSerializer(obj, context={'request': request})
+        serializer = UserReadSerializer(
+            request.user, context={'request': request}
+        )
         return Response(serializer.data)
 
     @action(detail=False, methods=['put'], url_path='me/avatar')

@@ -157,28 +157,28 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         return super().validate(data)
 
     @staticmethod
-    def create_ingredient_recipe(ingredients, recipe):
+    def create_ingredients(ingredients, recipe):
         validated_ingredients = []
-        for i in ingredients:
-            obj = IngredientRecipe(
+        for ingredient in ingredients:
+            ingredient_object = IngredientRecipe(
                 recipe=recipe,
-                amount=i['amount'],
-                ingredient_id=i['ingredient'].id
+                amount=ingredient['amount'],
+                ingredient_id=ingredient['ingredient'].id
             )
-            validated_ingredients.append(obj)
+            validated_ingredients.append(ingredient_object)
         IngredientRecipe.objects.bulk_create(validated_ingredients)
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         recipe = super().create(validated_data)
-        self.create_ingredient_recipe(ingredients, recipe)
+        self.create_ingredients(ingredients, recipe)
         return recipe
 
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         instance.ingredients.clear()
         instance.tags.clear()
-        self.create_ingredient_recipe(ingredients, instance)
+        self.create_ingredients(ingredients, instance)
         return super().update(instance, validated_data)
 
 
