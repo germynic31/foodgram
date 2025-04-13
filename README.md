@@ -1,10 +1,3 @@
-url - https://foodgram31.ddns.net
-
-admin profile:
-  - email - test@mail.com
-  - password - Test77.
-
-
 # Foodgram - сайт с рецептами на любой вкус
 
 ---
@@ -123,10 +116,4 @@ sudo docker compose -f docker-compose.production.yml exec backend python import_
 ```
 ---
 
-#### Авторы: [Герман Деев](https://github.com/germynic31) (backend, docker, CI/CD), [Yandex-Practicum](https://github.com/Yandex-Practicum) (frontend)
-
----
-
-Проект создан в учебных целях на курсе Я.Практикума
-
-
+#### Автор: [Герман Деев](https://github.com/germynic31) (backend, docker, CI/CD)
